@@ -1,0 +1,19 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Demo Extract Signature</h1>
+    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <form enctype="multipart/form-data" method="post" asp-action="Upload" asp-asp-controller="Home">
+        <input type="file" id="fileUpload" name="File" />
+        <button class="btn btn-success" type="submit">Submit</button>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+    </script>
+}
+
+
