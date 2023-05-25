@@ -40,47 +40,28 @@ namespace ES.WebUI.Controllers
         public IActionResult Upload([FromForm]UploadModel model)
         {
 
-            using (var image = new Image<Gray, byte>("D:\\WORKPLACE\\PROJECTS\\extract-signature\\ExtractSignature\\Assets\\3.bmp"))
-            {
-                // Chuyển ảnh sang ảnh grayscale để xử lý dễ dàng hơn
-                var grayImage = image.Convert<Gray, byte>();
+            string imagePath = "D:\\WORKPLACE\\PROJECTS\\extract-signature\\ExtractSignature\\Assets\\1.png";
+            Mat originalImage = CvInvoke.Imread(imagePath, ImreadModes.Unchanged);
 
-                // Áp dụng thresholding để tách chữ ký từ nền
-                CvInvoke.Threshold(grayImage, grayImage, 200, 255, ThresholdType.Binary);
+            // Tạo ảnh mask chỉ giữ lại các pixel có màu đen (0, 0, 0) và giữ lại alpha channel
+            Mat mask = new Mat();
+            CvInvoke.InRange(originalImage, new ScalarArray(new MCvScalar(0, 0, 0)), new ScalarArray(new MCvScalar(0, 0, 0)), mask);
 
-                // Tìm kiếm các contours trong ảnh
-                var contours = new VectorOfVectorOfPoint();
-                CvInvoke.FindContours(grayImage, contours, null, RetrType.External, ChainApproxMethod.ChainApproxSimple);
+            // Tìm bounding rectangle của vùng chứa chữ ký bằng cách xác định giới hạn của mask
+            Rectangle signatureRect = CvInvoke.BoundingRectangle(mask);
 
-                // Tìm contour có diện tích lớn nhất, đó chính là chữ ký
-                double maxArea = 0;
-                int maxAreaContourIndex = -1;
-                for (int i = 0; i < contours.Size; i++)
-                {
-                    double area = CvInvoke.ContourArea(contours[i]);
-                    if (area > maxArea)
-                    {
-                        maxArea = area;
-                        maxAreaContourIndex = i;
-                    }
-                }
+            // Cắt chữ ký từ ảnh gốc và tạo ảnh mới
+            Mat signatureImage = new Mat(originalImage, signatureRect);
 
-                // Nếu tìm thấy contour chữ ký
-                if (maxAreaContourIndex >= 0)
-                {
-                    // Tạo bounding rectangle xung quanh chữ ký
-                    var signatureRect = CvInvoke.BoundingRectangle(contours[maxAreaContourIndex]);
+            // Tạo một ảnh mới với kích thước và định dạng phù hợp
+            Mat transparentSignatureImage = new Mat(signatureImage.Size, DepthType.Cv8U, 4);
 
-                    // Cắt ảnh chữ ký từ ảnh gốc
-                    var signatureImage = image.GetSubRect(signatureRect);
+            // Sao chép dữ liệu từ ảnh chữ ký vào ảnh mới với kênh alpha tương ứng
+            CvInvoke.CvtColor(signatureImage, transparentSignatureImage, ColorConversion.Bgr2Bgra);
 
-                    // Thay đổi kích thước của ảnh chữ ký để có cùng width với chữ ký ban đầu
-                    var resizedSignatureImage = signatureImage.Resize(image.Width, signatureImage.Height, Inter.Linear);
-
-                    // Lưu ảnh chữ ký đã cắt và thay đổi kích thước vào tệp đầu ra
-                    resizedSignatureImage.Save("D:\\WORKPLACE\\PROJECTS\\extract-signature\\ExtractSignature\\Assets\\demo.bmp");
-                }
-            }
+            // Lưu ảnh chữ ký thành file mới
+            string signatureImagePath = "D:\\WORKPLACE\\PROJECTS\\extract-signature\\ExtractSignature\\Assets\\demo.png";
+            signatureImage.Save(signatureImagePath);
 
             return RedirectToAction("Index");
         }
